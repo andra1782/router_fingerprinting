@@ -74,18 +74,18 @@ def process(archive_url, run_dir, geoip_country_db_path, geoip_asn_db_path, coun
     extract_path = run_dir / "extracted" / archive_name[:-4]  
 
     try:
-        download_file(archive_url, archive_path)
-        extract_bz2(archive_path, extract_path)
+        # download_file(archive_url, archive_path)
+        # extract_bz2(archive_path, extract_path)
 
         base_name = extract_path.name
         ip_file = run_dir / "ips" / f"{base_name}_ips.txt"
         countries_file = run_dir / "ips_plus_details" / f"{base_name}_ips_countries.txt"
         filtered_file = run_dir / "country_ips" / f"{base_name}_ips_{country.replace(' ', '_')}.txt"
 
-        if args.multithreading:
-            run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file), "--multithreading", str(args.multithreading)])
-        else:
-            run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file)])
+        # if args.multithreading:
+        #     run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file), "--multithreading", str(args.multithreading)])
+        # else:
+        #     run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file)])
         run_script("extract-countries.py", [str(ip_file), "--output_file", str(countries_file), geoip_country_db_path, geoip_asn_db_path])
         run_script("filter-by-country.py", [str(countries_file), country, "--output_file", str(filtered_file)])
 
