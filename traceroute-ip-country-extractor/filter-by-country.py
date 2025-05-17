@@ -17,7 +17,7 @@ with open(args.input_file, "r") as f:
         if not line:
             continue
         try:
-            ip, country = line.split(",", 1)
+            ip, country = line.split(",")[0], line.split(",")[1]
             if country.strip().lower() == country_filter:
                 matched_ips.append(ip.strip())
         except ValueError:
