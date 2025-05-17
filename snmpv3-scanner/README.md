@@ -22,7 +22,7 @@ python runner.py run-all <mode> <input_dir> [--out-dir out_dir] [--per-file] [-r
 - `input_dir`: see above.
 
 **Optional Args:**
-- `--out-dir out_dir`: directory for all final outputs. Defaults to `./data/{now}/default_decoded`
+- `--out-dir out_dir`: directory for all final outputs. Defaults to `./data/{now}/results_decoded`
 - `--per-file`: if set, each ip input file will generate a separate output file. Otherwise, the data will be merged into a single output file. 
 - `-r rate`: zmap scan packets-per-second rate. Defaults to 3000.
 - `-c cooldown`: for how long will zmap continue receiving. Deafults to 2.
