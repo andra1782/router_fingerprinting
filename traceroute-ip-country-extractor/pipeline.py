@@ -9,6 +9,7 @@ from pathlib import Path
 
 PROJ_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJ_DIR / "data"
+DB_DIR = PROJ_DIR / "databases"
 
 
 def check_and_create_dir(path):
@@ -17,7 +18,7 @@ def check_and_create_dir(path):
 def prepare_dirs(run_dir):
     check_and_create_dir(DATA_DIR)
     check_and_create_dir(run_dir)
-    check_and_create_dir(run_dir / "country_ips")
+    check_and_create_dir(run_dir / "filtered_ips")
     check_and_create_dir(run_dir / "archives")
     check_and_create_dir(run_dir / "extracted")
     check_and_create_dir(run_dir / "ips")
@@ -68,29 +69,66 @@ def run_script(script_name, args):
     print(f"Finished script: {script_name}")
 
 
-def process(archive_url, run_dir, geoip_country_db_path, geoip_asn_db_path, country="The Netherlands"):
+def process(archive_url, run_dir, geoip_country_db_path, geoip_city_db_path, geoip_asn_db_path, country="The Netherlands", city=None, asn=None, org=None, skip_extraction=False):
     archive_name = Path(archive_url).name
     archive_path = run_dir / "archives" / archive_name
     extract_path = run_dir / "extracted" / archive_name[:-4]  
 
     try:
-        download_file(archive_url, archive_path)
-        extract_bz2(archive_path, extract_path)
+        if not skip_extraction:
+            download_file(archive_url, archive_path)
+            extract_bz2(archive_path, extract_path)
 
-        base_name = extract_path.name
-        ip_file = run_dir / "ips" / f"{base_name}_ips.txt"
-        countries_file = run_dir / "ips_plus_details" / f"{base_name}_ips_countries.txt"
-        filtered_file = run_dir / "country_ips" / f"{base_name}_ips_{country.replace(' ', '_')}.txt"
-
-        if args.multithreading:
-            run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file), "--multithreading", str(args.multithreading)])
+            base_name = extract_path.name
+            ip_file = run_dir / "ips" / f"{base_name}_ips.txt"
+            
+            if args.multithreading:
+                run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file), "--multithreading", str(args.multithreading)])
+            else:
+                run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file)])
         else:
-            run_script("extract-ips.py", [str(extract_path), "--output_file", str(ip_file)])
-        run_script("extract-countries.py", [str(ip_file), "--output_file", str(countries_file), geoip_country_db_path, geoip_asn_db_path])
-        run_script("filter-by-country.py", [str(countries_file), country, "--output_file", str(filtered_file)])
+            base_name = extract_path.name
+            ip_file = run_dir / "ips" / f"{base_name}_ips.txt"
+            if not ip_file.exists():
+                print(f"Error: IP file not found: {ip_file}")
+                print("Make sure to run the full pipeline first or provide the correct IP file.")
+                return
+
+        details_file = run_dir / "ips_plus_details" / f"{base_name}_ips.txt"
+        
+        # Build filter arguments
+        filter_args = [str(details_file)]
+        if country:
+            filter_args.extend(["--country", country])
+        if city:
+            filter_args.extend(["--city", city])
+        if asn:
+            filter_args.extend(["--asn", asn])
+        if org:
+            filter_args.extend(["--org", org])
+            
+        # Generate filter directory name
+        filter_parts = []
+        if country: filter_parts.append(f"country_{country.replace(' ', '_')}")
+        if city: filter_parts.append(f"city_{city.replace(' ', '_')}")
+        if asn: filter_parts.append(f"asn_{asn}")
+        if org: filter_parts.append(f"org_{org.replace(' ', '_')}")
+        filter_dir_name = "_".join(filter_parts) if filter_parts else "country_default"
+        
+        # Create filter-specific directory
+        filter_dir = run_dir / "filtered_ips" / filter_dir_name
+        check_and_create_dir(filter_dir)
+            
+        # Generate output filename
+        filtered_file = filter_dir / f"{base_name}_ips.txt"
+        
+        filter_args.extend(["--output_file", str(filtered_file)])
+
+        run_script("extract-details.py", [str(ip_file), "--output_file", str(details_file), geoip_country_db_path, geoip_city_db_path, geoip_asn_db_path])
+        run_script("filters.py", filter_args)
 
     finally:
-        if not args.keep_temp:
+        if not skip_extraction and not args.keep_temp:
             if archive_path.exists():
                 archive_path.unlink()
                 print(f"Deleted archive: {archive_path}")
@@ -100,36 +138,50 @@ def process(archive_url, run_dir, geoip_country_db_path, geoip_asn_db_path, coun
 
     print(f"Done processing: {archive_name}")
     print("-" * 60)
-
-def combine_ips(run_dir):
-    ips = set()
-    for file_path in (run_dir / "country_ips").iterdir():
-        if file_path.is_file() and file_path.suffix == ".txt":
-            print(f"Reading {file_path.name}")
-            with file_path.open("r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        ips.add(line)
     
-    output_file = run_dir / "results.txt"
+    # Combine IPs from this filter directory
+    combine_ips(run_dir, filter_dir_name)
 
-    with output_file.open("w") as out:
-        for ip in sorted(ips):
-            out.write(ip + "\n")
-    
-    print(f"Wrote {len(ips)} unique IPs to {output_file}")
+def combine_ips(run_dir, filter_dir_name):
+    # Combine IPs only from the specified filter directory
+    filter_dir = run_dir / "filtered_ips" / filter_dir_name
+    if filter_dir.exists():
+        print(f"Processing {filter_dir_name}")
+        ips = set()
+        
+        # Read all IPs from this filter directory
+        for file_path in filter_dir.iterdir():
+            if file_path.is_file() and file_path.suffix == ".txt":
+                print(f"  Reading {file_path.name}")
+                with file_path.open("r", encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            ips.add(line)
+        
+        # Create results file with matching name
+        results_file = run_dir / f"results_{filter_dir_name}.txt"
+        with results_file.open("w", encoding='utf-8') as out:
+            for ip in sorted(ips):
+                out.write(ip + "\n")
+        
+        print(f"Wrote {len(ips)} unique IPs to {results_file}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process .bz2 traceroutes from online resources, extract their IPs and filter them by country.")
     parser.add_argument("--url_file", help="Text file with list of archive URLs (one per line)")
     parser.add_argument("--url",  help="Atlas Daily Dump Index URL (specific day)")
-    parser.add_argument("geoip_country_db", help="Path to MaxMind GeoIP2 country database file")
-    parser.add_argument("geoip_asn_db", help="Path to MaxMind GeoIP2 ASN database file")
+    parser.add_argument("geoip_country_db", help="Name of the MaxMind GeoIP2 country database file in the databases folder")
+    parser.add_argument("geoip_city_db", help="Name of the MaxMind GeoIP2 city database file in the databases folder")
+    parser.add_argument("geoip_asn_db", help="Name of the MaxMind GeoIP2 ASN database file in the databases folder")
     parser.add_argument("--run-name", help="Optional name for run")
     parser.add_argument("--keep-temp", action="store_true", help="Keep downloaded and extracted files")
     parser.add_argument("--country", default="The Netherlands", help="Country name to filter IPs (default: 'The Netherlands')")
+    parser.add_argument("--city", help="City name to filter IPs")
+    parser.add_argument("--asn", help="ASN to filter IPs")
+    parser.add_argument("--org", help="Organization name to filter IPs")
+    parser.add_argument("--skip-extraction", action="store_true", help="Skip download, extraction and IP extraction steps (use existing IP files)")
     parser.add_argument(
         "--multithreading",
         nargs="?",
@@ -140,10 +192,23 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Resolve database paths
+    geoip_country_db_path = DB_DIR / args.geoip_country_db
+    geoip_city_db_path = DB_DIR / args.geoip_city_db
+    geoip_asn_db_path = DB_DIR / args.geoip_asn_db
+
+    # Check if database files exist
+    if not geoip_country_db_path.exists():
+        print(f"Error: Country database file not found: {geoip_country_db_path}")
+        exit(1)
+    if not geoip_city_db_path.exists():
+        print(f"Error: City database file not found: {geoip_city_db_path}")
+        exit(1)
+    if not geoip_asn_db_path.exists():
+        print(f"Error: ASN database file not found: {geoip_asn_db_path}")
+        exit(1)
+
     run_id = args.run_name or datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    # print(run_id)
-    # print(args.country)
-    # print(args.keep_temp)
     run_dir = DATA_DIR / run_id
 
     prepare_dirs(run_dir)
@@ -165,11 +230,22 @@ if __name__ == "__main__":
     with open(args.url_file, 'r') as f:
         urls = [line.strip() for line in f if line.strip()]
 
+    # Generate filter directory name for the current run
+    filter_parts = []
+    if args.country: filter_parts.append(f"country_{args.country.replace(' ', '_')}")
+    if args.city: filter_parts.append(f"city_{args.city.replace(' ', '_')}")
+    if args.asn: filter_parts.append(f"asn_{args.asn}")
+    if args.org: filter_parts.append(f"org_{args.org.replace(' ', '_')}")
+    filter_dir_name = "_".join(filter_parts) if filter_parts else "country_default"
+
     for url in urls:
         try:
-            process(url, run_dir, args.geoip_country_db, args.geoip_asn_db, args.country)
+            process(url, run_dir, str(geoip_country_db_path), str(geoip_city_db_path), str(geoip_asn_db_path), 
+                   country=args.country, city=args.city, asn=args.asn, org=args.org,
+                   skip_extraction=args.skip_extraction)
         except Exception as e:
             print(f"Error processing {url}: {e}")
             print("-" * 60)
 
-    combine_ips(run_dir)  
+    # Combine IPs from the current filter directory
+    combine_ips(run_dir, filter_dir_name)  
