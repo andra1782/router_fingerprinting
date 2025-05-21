@@ -139,8 +139,6 @@ def process(archive_url, run_dir, geoip_country_db_path, geoip_city_db_path, geo
     print(f"Done processing: {archive_name}")
     print("-" * 60)
     
-    # Combine IPs from this filter directory
-    combine_ips(run_dir, filter_dir_name)
 
 def combine_ips(run_dir, filter_dir_name):
     # Combine IPs only from the specified filter directory
