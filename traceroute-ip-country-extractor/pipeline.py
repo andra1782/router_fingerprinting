@@ -11,7 +11,6 @@ PROJ_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJ_DIR / "data"
 DB_DIR = PROJ_DIR / "databases"
 
-
 def check_and_create_dir(path):
     path.mkdir(parents=True, exist_ok=True)
 
@@ -20,6 +19,7 @@ def prepare_dirs(run_dir, filter_dir_name):
     check_and_create_dir(filter_dir)
     check_and_create_dir(DATA_DIR)
     check_and_create_dir(run_dir)
+    check_and_create_dir(run_dir / "results")
     check_and_create_dir(run_dir / "filtered_ips")
     check_and_create_dir(run_dir / "archives")
     check_and_create_dir(run_dir / "extracted")
@@ -149,7 +149,7 @@ def combine_ips(run_dir, filter_dir_name):
                             ips.add(line)
         
         # Create results file with matching name
-        results_file = run_dir / f"results_{filter_dir_name}.txt"
+        results_file = run_dir / "results" / "f{filter_dir_name}_results.txt"
         with results_file.open("w", encoding='utf-8') as out:
             for ip in sorted(ips):
                 out.write(ip + "\n")
