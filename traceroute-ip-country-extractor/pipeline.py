@@ -15,7 +15,9 @@ DB_DIR = PROJ_DIR / "databases"
 def check_and_create_dir(path):
     path.mkdir(parents=True, exist_ok=True)
 
-def prepare_dirs(run_dir):
+def prepare_dirs(run_dir, filter_dir_name):
+    filter_dir = run_dir / "filtered_ips" / filter_dir_name
+    check_and_create_dir(filter_dir)
     check_and_create_dir(DATA_DIR)
     check_and_create_dir(run_dir)
     check_and_create_dir(run_dir / "filtered_ips")
@@ -69,7 +71,7 @@ def run_script(script_name, args):
     print(f"Finished script: {script_name}")
 
 
-def process(archive_url, run_dir, geoip_country_db_path, geoip_city_db_path, geoip_asn_db_path, country="The Netherlands", city=None, asn=None, org=None, skip_extraction=False):
+def process(archive_url, run_dir, filter_dir_name, geoip_country_db_path, geoip_city_db_path, geoip_asn_db_path, country="The Netherlands", city=None, asn=None, org=None, skip_extraction=False):
     archive_name = Path(archive_url).name
     archive_path = run_dir / "archives" / archive_name
     extract_path = run_dir / "extracted" / archive_name[:-4]  
@@ -96,33 +98,22 @@ def process(archive_url, run_dir, geoip_country_db_path, geoip_city_db_path, geo
 
         details_file = run_dir / "ips_plus_details" / f"{base_name}_ips.txt"
         
-        # Build filter arguments
-        filter_args = [str(details_file)]
-        if country:
-            filter_args.extend(["--country", country])
-        if city:
-            filter_args.extend(["--city", city])
-        if asn:
-            filter_args.extend(["--asn", asn])
-        if org:
-            filter_args.extend(["--org", org])
-            
-        # Generate filter directory name
-        filter_parts = []
-        if country: filter_parts.append(f"country_{country.replace(' ', '_')}")
-        if city: filter_parts.append(f"city_{city.replace(' ', '_')}")
-        if asn: filter_parts.append(f"asn_{asn}")
-        if org: filter_parts.append(f"org_{org.replace(' ', '_')}")
-        filter_dir_name = "_".join(filter_parts) if filter_parts else "country_default"
-        
         # Create filter-specific directory
         filter_dir = run_dir / "filtered_ips" / filter_dir_name
-        check_and_create_dir(filter_dir)
             
         # Generate output filename
         filtered_file = filter_dir / f"{base_name}_ips.txt"
         
-        filter_args.extend(["--output_file", str(filtered_file)])
+          # Build filter arguments
+        filter_args = [str(details_file), "--output_file", str(filtered_file)]
+        if country:
+            filter_args.extend(["--country", country])
+        if city:
+                filter_args.extend(["--city", city])
+        if asn:
+                filter_args.extend(["--asn", asn])
+        if org:
+                filter_args.extend(["--org", org])
 
         run_script("extract-details.py", [str(ip_file), "--output_file", str(details_file), geoip_country_db_path, geoip_city_db_path, geoip_asn_db_path])
         run_script("filters.py", filter_args)
@@ -209,7 +200,15 @@ if __name__ == "__main__":
     run_id = args.run_name or datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir = DATA_DIR / run_id
 
-    prepare_dirs(run_dir)
+    # Generate filter directory name for the current run
+    filter_parts = []
+    if args.country: filter_parts.append(f"country_{args.country.replace(' ', '_')}")
+    if args.city: filter_parts.append(f"city_{args.city.replace(' ', '_')}")
+    if args.asn: filter_parts.append(f"asn_{args.asn}")
+    if args.org: filter_parts.append(f"org_{args.org.replace(' ', '_')}")
+    filter_dir_name = "_".join(filter_parts) if filter_parts else "country_default"
+
+    prepare_dirs(run_dir=run_dir, filter_dir_name=filter_dir_name)
 
     if not args.url_file and not args.url:
         print("--url-file OR --url required")
@@ -228,17 +227,10 @@ if __name__ == "__main__":
     with open(args.url_file, 'r') as f:
         urls = [line.strip() for line in f if line.strip()]
 
-    # Generate filter directory name for the current run
-    filter_parts = []
-    if args.country: filter_parts.append(f"country_{args.country.replace(' ', '_')}")
-    if args.city: filter_parts.append(f"city_{args.city.replace(' ', '_')}")
-    if args.asn: filter_parts.append(f"asn_{args.asn}")
-    if args.org: filter_parts.append(f"org_{args.org.replace(' ', '_')}")
-    filter_dir_name = "_".join(filter_parts) if filter_parts else "country_default"
 
     for url in urls:
         try:
-            process(url, run_dir, str(geoip_country_db_path), str(geoip_city_db_path), str(geoip_asn_db_path), 
+            process(url, run_dir, filter_dir_name, str(geoip_country_db_path), str(geoip_city_db_path), str(geoip_asn_db_path), 
                    country=args.country, city=args.city, asn=args.asn, org=args.org,
                    skip_extraction=args.skip_extraction)
         except Exception as e:
