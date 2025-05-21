@@ -149,7 +149,7 @@ def combine_ips(run_dir, filter_dir_name):
                             ips.add(line)
         
         # Create results file with matching name
-        results_file = run_dir / "results" / "f{filter_dir_name}_results.txt"
+        results_file = run_dir / "results" / f"{filter_dir_name}_results.txt"
         with results_file.open("w", encoding='utf-8') as out:
             for ip in sorted(ips):
                 out.write(ip + "\n")
