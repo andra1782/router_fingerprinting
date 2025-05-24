@@ -8,7 +8,7 @@ Works only with ipv4 (for now).
 - need to have extracted the ips, refer to [traceroute extractor README](../traceroute-ip-country-extractor//README.md)
 
 ## Run entire pipeline
-This will **preprocess** ➔ **scan** ➔ **postprocess** in one go. Your input folder will be the destination where the ips of a specific contry were extracted. If you ran the extractor code with default output args, this path should be: `../traceroute-ip-country-extractor/data/{extracted day}/country_ips/`.
+This will **preprocess** ➔ **scan** ➔ **postprocess** in one go. Your input folder will be the destination where the ips of a specific contry were extracted. If you ran the extractor code with default output args, this path should be: `../traceroute-ip-country-extractor/data/{extracted day}/results/`.
 ```
 python runner.py run-all <mode> <input_dir>
 ```
