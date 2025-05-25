@@ -1,0 +1,7 @@
+# Maximum number of characters per line
+line-length = 100
+select = []
+
+[format]
+# Prefer single quotes when formatting strings
+quote-style = "single"

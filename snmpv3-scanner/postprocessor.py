@@ -12,21 +12,21 @@ from utils import *
 
 def extract_fields(tshark_json):
     try:
-        layers = tshark_json[0]["_source"]["layers"]
-        snmp = layers.get("snmp", {})
-        tree = snmp.get("snmp.msgAuthoritativeEngineID_tree", {})
+        layers = tshark_json[0]['_source']['layers']
+        snmp = layers.get('snmp', {})
+        tree = snmp.get('snmp.msgAuthoritativeEngineID_tree', {})
 
-        enterprise = tree.get("snmp.engineid.enterprise", "")
-        format_id = tree.get("snmp.engineid.format", "")
-        mac = tree.get("snmp.engineid.mac", "")
-        boots = snmp.get("snmp.msgAuthoritativeEngineBoots", "")
-        time_raw = snmp.get("snmp.msgAuthoritativeEngineTime", "")
-        uptime = seconds_to_uptime(time_raw) if time_raw else ""
+        enterprise = tree.get('snmp.engineid.enterprise', '')
+        format_id = tree.get('snmp.engineid.format', '')
+        mac = tree.get('snmp.engineid.mac', '')
+        boots = snmp.get('snmp.msgAuthoritativeEngineBoots', '')
+        time_raw = snmp.get('snmp.msgAuthoritativeEngineTime', '')
+        uptime = seconds_to_uptime(time_raw) if time_raw else ''
         return enterprise, format_id, mac, boots, uptime
 
     except Exception as e:
-        return "", "", "", "", ""
-    
+        return '', '', '', '', ''
+
 
 def process_row(idx: int, row: pd.Series) -> dict:
     """
@@ -55,21 +55,21 @@ def process_row(idx: int, row: pd.Series) -> dict:
         - Uses Python's `tempfile.TemporaryDirectory` to isolate and automatically
           delete intermediate `.txt` and `.pcap` files.
     """
-    ip = row["saddr"]
+    ip = row['saddr']
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
-        dump_path = tmpdir / f"snmpdump_{idx}.txt"
-        pcap_path = tmpdir / f"snmp_packet_{idx}.pcap"
-        dump_path.write_text(hex_to_text2pcap_format(row["data"]))
+        dump_path = tmpdir / f'snmpdump_{idx}.txt'
+        pcap_path = tmpdir / f'snmp_packet_{idx}.pcap'
+        dump_path.write_text(hex_to_text2pcap_format(row['data']))
 
         try:
             subprocess.run(
-                ["text2pcap", "-q", "-T", "50000,161", dump_path, pcap_path],
+                ['text2pcap', '-q', '-T', '50000,161', dump_path, pcap_path],
                 check=True,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
             )
             tshark = subprocess.run(
-                ["tshark", "-r", pcap_path, "-T", "json"],
+                ['tshark', '-r', pcap_path, '-T', 'json'],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=True,
@@ -78,20 +78,33 @@ def process_row(idx: int, row: pd.Series) -> dict:
             enterprise, fmt, mac, boots, uptime = extract_fields(tshark_json)
 
         except subprocess.CalledProcessError as e:
-            print(f"[ERROR] IP {ip}: {e}")
-            enterprise = "ERROR"
-            fmt = mac = boots = uptime = ""
+            print(f'[ERROR] IP {ip}: {e}')
+            enterprise = 'ERROR'
+            fmt = mac = boots = uptime = ''
 
         return {
-            "ip": ip,
-            "enterprise": enterprise,
-            "engineIDFormat": fmt,
-            "engineIDData": mac,
-            "snmpEngineBoots": boots,
-            "snmpEngineTime": uptime,
+            'ip': ip,
+            'enterprise': enterprise,
+            'engineIDFormat': fmt,
+            'engineIDData': mac,
+            'snmpEngineBoots': boots,
+            'snmpEngineTime': uptime,
+            'country': row['country'],
+            'city': row['city'],
+            'asn': row['asn'],
+            'asn_name': row['asn_name'],
         }
 
-def parse_results(zmap_csv: str, out_csv: str, max_workers: int = 5) -> None:
+
+def append_metadata(df: pd.DataFrame, path: Path) -> None:
+    """Merges the parsed ZMap dataframe to the corresponding metadata"""
+    metadata_path = Path(MetadataFileMapper().get(str(path.resolve())))
+    metadata_df = pd.read_csv(metadata_path)
+
+    return pd.merge(df, metadata_df, left_on='saddr', right_on='ip', how='inner')
+
+
+def parse_results(zmap_csv: str, out_csv: str, max_workers: int = 5) -> pd.DataFrame:
     """
     Reads a raw ZMap CSV, decodes each row, and writes the final parsed CSV.
 
@@ -102,29 +115,35 @@ def parse_results(zmap_csv: str, out_csv: str, max_workers: int = 5) -> None:
     """
     zpath = Path(zmap_csv)
     if not zpath.is_file():
-        raise FileNotFoundError(f"ZMap CSV not found: {zmap_csv}")
+        raise FileNotFoundError(f'ZMap CSV not found: {zmap_csv}')
 
-    df = pd.read_csv(zpath)
+    df = append_metadata(pd.read_csv(zpath), zpath)
 
     records = []
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        future_to_idx = {
-            pool.submit(process_row, idx, row): idx
-            for idx, row in df.iterrows()
-        }
+        future_to_idx = {pool.submit(process_row, idx, row): idx for idx, row in df.iterrows()}
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
             try:
                 rec = future.result()
                 records.append(rec)
             except Exception as e:
-                print(f"[ERROR] processing row {idx} in {zmap_csv}: {e}", file=sys.stderr)
+                print(f'[ERROR] processing row {idx} in {zmap_csv}: {e}', file=sys.stderr)
 
     out_df = pd.DataFrame(records)
     out_df.to_csv(out_csv, index=False)
-    print(f"Parsed results written to {out_csv}")
+    print(f'Parsed results written to {out_csv}')
+    return out_df
 
-def postprocess(mode: IPMode, input_dir: str = DEFAULT_ZMAP_PATH, out_dir: str = DEFAULT_DECODED_PATH, max_workers: int = 5) -> None:
+
+def postprocess(
+    *,
+    mode: IPMode,
+    input_dir: str = DEFAULT_ZMAP_PATH,
+    out_dir: str = DEFAULT_DECODED_PATH,
+    max_workers: int = 5,
+    **kwargs,
+) -> None:
     """
     Processes all ZMap CSV files and outputs one parsed CSV per input.
     IPv6 postprocessing is not yet supported.
@@ -135,23 +154,24 @@ def postprocess(mode: IPMode, input_dir: str = DEFAULT_ZMAP_PATH, out_dir: str =
         out_dir: Directory to write parsed CSV outputs.
         max_workers: Max number of thread workers.
     """
-    ip_dir = Path(input_dir) / f'{mode.value}/filtered'
+    ip_dir = (
+        Path(input_dir)
+        if 'input_dir' in kwargs or input_dir != DEFAULT_ZMAP_PATH
+        else Path(input_dir) / f'{mode.value}/filtered'
+    )
     if not ip_dir.is_dir():
-        raise FileNotFoundError(f"ZMap directory not found: {ip_dir}")
+        raise FileNotFoundError(f'ZMap directory not found: {ip_dir}')
 
     out_path = Path(out_dir) / f'{mode.value}'
     out_path.mkdir(parents=True, exist_ok=True)
 
     for csv_path in ip_dir.glob('*.csv'):
         base = csv_path.stem
-        out_csv = out_path / f"{base}_parsed.csv"
+        out_csv = out_path / f'{base}_parsed.csv'
         try:
             parse_results(zmap_csv=str(csv_path), out_csv=str(out_csv), max_workers=max_workers)
         except Exception as e:
-            print(f"Error processing {csv_path.name}: {e}", file=sys.stderr)
+            print(f'Error processing {csv_path.name}: {e}', file=sys.stderr)
             continue
-    
-    #TODO: add for ipv6
 
-if __name__ == '__main__':
-    parse_results('test.csv', 'test_res.csv')
+    # TODO: add for ipv6
