@@ -32,13 +32,13 @@ python runner.py run-all <mode> <input_dir> [--out-dir out_dir] [--per-file] [-r
 ## Run individual scripts
 
 ### To preprocess: 
-Split raw ip `.txt` lists in unique ipv4 and ipv6 files. The arguments are the same as in pipeline. The default output path is `./data/{now}/ips`.
+Split ip lists in unique ipv4 and ipv6 files. The arguments are the same as in pipeline. The default output path is `./data/{now}/ips`. This will contain two folders: `raw` with just the ip `.txt` files and `metadata` with `.csv` files containing the ips and the corresponding metadata.
 ```
 python runner.py preprocess <input_dir> [--out-dir out_dir] [--per-file]
 ```
 
 ### To run scanner (zmap snmpv3 scan on the ip files):
-Run ZMap SNMPv3 against your ip `.txt` files. Default `input_dir` will be the output path of the preprocessor (`./data/{now}/ips`). The default `out_file` will be `./data/{now}/results_encoded`. Here there will be two folders, one for unfiltered data, so zmap's untouched output, and one for only non-empty snmpv3 responses coming from ips in the input list. The rest of the arguments are the same as in pipeline.
+Run ZMap SNMPv3 against your ip `.txt` files. Default `input_dir` will be the output path of the preprocessor (`./data/{now}/ips/raw`). The default `out_file` will be `./data/{now}/results_encoded`. Here there will be two folders, one for unfiltered data, so zmap's untouched output, and one for only non-empty snmpv3 responses coming from ips in the input list. The rest of the arguments are the same as in pipeline.
 ```
 python runner.py scan-ips <mode> [input_dir] [--out-dir out_dir] [-r rate] [-c cooldown]
 ```
@@ -46,7 +46,7 @@ python runner.py scan-ips <mode> [input_dir] [--out-dir out_dir] [-r rate] [-c c
 ### To run postprocessor 
 Decode the raw ZMap CSVs into a final, human-readable CSV with columns: 
 ```
-ip,enterprise,engineIDFormat,engineIDData,snmpEngineBoots,snmpEngineTime
+ip,enterprise,engineIDFormat,engineIDData,snmpEngineBoots,snmpEngineTime,country,city,asn,asn_name 
 ```
 The `input_dir` should be the filtered output folder from the scanner, by default: `./data/{now}/results_encoded/{ip mode}/filtered`. The output will be written in `./data/{now}/results_decoded`. The rest of the arguments are the same as in pipeline.
 
