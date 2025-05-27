@@ -288,12 +288,12 @@ if __name__ == "__main__":
 
         ips = combine_ips_in_dir(dir_name=(run_dir / "ips"))
 
-        results_file = run_dir / "all_ips.txt" 
+        results_file = run_dir / f"{run_id}_all_ips.txt" 
         with results_file.open("w", encoding='utf-8') as out:
             for ip in sorted(ips):
                 out.write(ip + "\n")
 
-        ip_file = run_dir / "all_ips.txt"
+        ip_file = run_dir / f"{run_id}_all_ips.txt"
            
         details_file = run_dir / "ips_plus_details" / f"{run_id}_ips.txt"
         
