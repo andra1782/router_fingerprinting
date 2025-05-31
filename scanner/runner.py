@@ -25,7 +25,8 @@ if __name__ == '__main__':
 
     # Scan: run ZMap on whitelists
     p_scan = subparsers.add_parser('scan-ips', help='Run ZMap scans on IP whitelists')
-    p_scan.add_argument('mode', help='ipv4 or ipv6')
+    p_scan.add_argument('ipmode', help='ipv4 or ipv6')
+    p_scan.add_argument('scanmode', help='snmpv3 or ntp')
     p_scan.add_argument(
         '--input_dir', default=DEFAULT_IP_PATH, help='Directory with IPv4 and IPv6 whitelist files'
     )
@@ -43,7 +44,8 @@ if __name__ == '__main__':
 
     # Postprocess: parse raw ZMap CSV into final CSV
     p_post = subparsers.add_parser('postprocess', help='Parse ZMap CSV into final parsed CSV')
-    p_post.add_argument('mode', help='ipv4 or ipv6')
+    p_post.add_argument('ipmode', help='ipv4 or ipv6')
+    p_post.add_argument('scanmode', help='snmpv3 or ntp')
     p_post.add_argument(
         '--input_dir',
         default=DEFAULT_ZMAP_PATH,
@@ -63,7 +65,8 @@ if __name__ == '__main__':
     p_all = subparsers.add_parser(
         'run-all', help='Run preprocess, scan-ipv4, scan-ipv6, and postprocess in one go'
     )
-    p_all.add_argument('mode', help='ipv4 or ipv6')
+    p_all.add_argument('ipmode', help='ipv4 or ipv6')
+    p_all.add_argument('scanmode', help='snmpv3 or ntp')
     p_all.add_argument('input_dir', nargs='?', help='Directory containing raw .txt IP lists')
     p_all.add_argument(
         '--out-dir', default=DEFAULT_DECODED_PATH, help='Base directory for all final outputs'
@@ -99,7 +102,8 @@ if __name__ == '__main__':
         run_scan(
             whitelist_dir=args.input_dir,
             out_dir=args.out_dir,
-            mode=IPMode[args.mode.upper()],
+            ip_mode=IPMode[args.ipmode.upper()],
+            scan_mode=ScanMode[args.scanmode.upper()],
             rate=args.rate,
         )
 
@@ -107,15 +111,17 @@ if __name__ == '__main__':
         postprocess(
             input_dir=args.input_dir,
             out_dir=args.out_dir,
-            mode=IPMode[args.mode.upper()],
+            ip_mode=IPMode[args.ipmode.upper()],
+            scan_mode=ScanMode[args.scanmode.upper()],
             max_workers=args.max_workers,
+            with_metadata=False
         )
 
     elif args.command == 'run-all':
         split_ips(input_dir=args.input_dir, per_file=args.per_file)
-        run_scan(mode=IPMode[args.mode.upper()], rate=args.rate, cooldown=args.cooldown)
+        run_scan(ip_mode=IPMode[args.ipmode.upper()], scan_mode=ScanMode[args.scanmode.upper()], rate=args.rate, cooldown=args.cooldown)
         postprocess(
-            out_dir=args.out_dir, mode=IPMode[args.mode.upper()], max_workers=args.max_workers
+            out_dir=args.out_dir, ip_mode=IPMode[args.ipmode.upper()], scan_mode=ScanMode[args.scanmode.upper()], max_workers=args.max_workers
         )
     else:
         parser.print_help()

@@ -15,7 +15,20 @@ class IPMode(StrEnum):
     def address(self) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
         mapping = {IPMode.IPV4: ipaddress.IPv4Address, IPMode.IPV6: ipaddress.IPv6Address}
         return mapping[self]
+    
+class ScanMode(StrEnum):
+    SNMPV3 = auto()
+    NTP = auto()
 
+    @property
+    def packet(self) -> str:
+        mapping={ScanMode.SNMPV3: 'snmp3_161.pkt', ScanMode.NTP: 'ntp_123.pkt'}
+        return mapping[self]
+
+    @property
+    def port(self) -> str:
+        mapping={ScanMode.SNMPV3: '161', ScanMode.NTP: '123'}
+        return mapping[self]
 
 #####################################################################################################
 # Default flags
@@ -72,6 +85,9 @@ class MetadataFileMapper(metaclass=Singleton):
 
     @classmethod
     def get_from_file(cls, data_file: str) -> str:
-        with open(cls.metadata_map_file, 'r') as f:
-            content = f.read()
-            return json.loads(content).get(data_file)
+        try:
+            with open(cls.metadata_map_file, 'r') as f:
+                content = f.read()
+                return json.loads(content).get(data_file)
+        except:
+            return None

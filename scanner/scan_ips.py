@@ -7,8 +7,8 @@ import pandas as pd
 from config import *
 
 
-def get_subdirs(mode: IPMode, out_dir: Path) -> Tuple[Path, Path]:
-    dir = Path(out_dir) / f'{IPMode.IPV4.value if mode == IPMode.IPV4 else IPMode.IPV6.value}'
+def get_subdirs(ip_mode: IPMode, out_dir: Path) -> Tuple[Path, Path]:
+    dir = Path(out_dir) / f'{IPMode.IPV4.value if ip_mode == IPMode.IPV4 else IPMode.IPV6.value}'
 
     unfiltered_dir = dir / 'unfiltered'
     filtered_dir = dir / 'filtered'
@@ -20,7 +20,8 @@ def get_subdirs(mode: IPMode, out_dir: Path) -> Tuple[Path, Path]:
 
 def run_scan(
     *,
-    mode: IPMode,
+    ip_mode: IPMode,
+    scan_mode: ScanMode,
     whitelist_dir: str = DEFAULT_IP_PATH,
     out_dir: str = DEFAULT_ZMAP_PATH,
     rate: int = DEFAULT_RATE,
@@ -32,22 +33,23 @@ def run_scan(
 
     Args:
         whitelist_dir: Directory containing per-input whitelist .txt files.
-        mode: IPMode.IPV4 or IPMode.IPV6, controls IPv6 flag and output naming.
+        ip_mode: IPMode.IPV4 or IPMode.IPV6, controls IPv6 flag and output naming.
+        scan_mode: scan mode.
         rate: packets-per-second rate for ZMap.
         cooldown: how long to continue receiving after sending has completed.
     """
     whitelist_path = (
         Path(whitelist_dir)
         if 'whitelist_dir' in kwargs or whitelist_dir != DEFAULT_IP_PATH
-        else Path(whitelist_dir) / f'{mode.value}' / 'raw'
+        else Path(whitelist_dir) / f'{ip_mode.value}' / 'raw'
     )
     print(whitelist_dir)
 
     if not whitelist_path.is_dir():
         raise FileNotFoundError(f'Whitelist directory not found: {whitelist_dir}')
 
-    z6_flag = ['-6'] if mode == IPMode.IPV6 else []
-    unfiltered_result_dir, filtered_result_dir = get_subdirs(mode=mode, out_dir=Path(out_dir))
+    z6_flag = ['-6'] if ip_mode == IPMode.IPV6 else []
+    unfiltered_result_dir, filtered_result_dir = get_subdirs(ip_mode=ip_mode, out_dir=Path(out_dir))
 
     for file_path in whitelist_path.glob('*.txt'):
         try:
@@ -59,8 +61,8 @@ def run_scan(
             continue
 
         ip_file = str(file_path.resolve())
-        unfiltered_output_csv = unfiltered_result_dir / f'zmap_{file_path.stem}.csv'
-        filtered_output_csv = filtered_result_dir / f'zmap_{file_path.stem}.csv'
+        unfiltered_output_csv = unfiltered_result_dir / f'zmap_{scan_mode.value}_{file_path.stem}.csv'
+        filtered_output_csv = filtered_result_dir / f'zmap_{scan_mode.value}_{file_path.stem}.csv'
 
         cmd = [
             'sudo',
@@ -69,8 +71,8 @@ def run_scan(
             '-M',
             'udp',
             '-p',
-            '161',
-            '--probe-args=file:snmp3_161.pkt',
+            scan_mode.port,
+            f'--probe-args=file:{scan_mode.packet}',
             '-O',
             'csv',
             '-f',
@@ -85,7 +87,7 @@ def run_scan(
             ip_file,
         ]
 
-        print(f'Running ZMap scan ({mode}) on {file_path.name} -> {unfiltered_output_csv.name}')
+        print(f'Running ZMap scan ({ip_mode}) on {file_path.name} -> {unfiltered_output_csv.name}')
         try:
             subprocess.run(cmd, check=True)
             print(f'Scan complete: {unfiltered_output_csv}')

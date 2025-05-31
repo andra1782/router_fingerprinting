@@ -10,15 +10,16 @@ Works only with ipv4 (for now).
 ## Run entire pipeline
 This will **preprocess** ➔ **scan** ➔ **postprocess** in one go. Your input folder will be the destination where the ips of a specific contry were extracted. If you ran the extractor code with default output args, this path should be: `../traceroute-ip-country-extractor/data/{extracted day}/results/`.
 ```
-python runner.py run-all <mode> <input_dir>
+python runner.py run-all <ipmode> <scanmode> <input_dir>
 ```
 
 Full command:
 ```
-python runner.py run-all <mode> <input_dir> [--out-dir out_dir] [--per-file] [-r rate] [-c cooldown] [--max-workers N]
+python runner.py run-all <ipmode> <scanmode> <input_dir> [--out-dir out_dir] [--per-file] [-r rate] [-c cooldown] [--max-workers N]
 ```
 **Required Args:**
-- `mode`: defines whether to run IPv4 or IPv6 (`ipv4` or `ipv6`).
+- `ipmode`: defines whether to run IPv4 or IPv6 (`ipv4` or `ipv6`).
+- `scanmode`: definsed whether to scan SNMPv3 or NTP
 - `input_dir`: see above.
 
 **Optional Args:**
@@ -40,7 +41,7 @@ python runner.py preprocess <input_dir> [--out-dir out_dir] [--per-file]
 ### To run scanner (zmap snmpv3 scan on the ip files):
 Run ZMap SNMPv3 against your ip `.txt` files. Default `input_dir` will be the output path of the preprocessor (`./data/{now}/ips/raw`). The default `out_file` will be `./data/{now}/results_encoded`. Here there will be two folders, one for unfiltered data, so zmap's untouched output, and one for only non-empty snmpv3 responses coming from ips in the input list. The rest of the arguments are the same as in pipeline.
 ```
-python runner.py scan-ips <mode> [input_dir] [--out-dir out_dir] [-r rate] [-c cooldown]
+python runner.py scan-ips <ipmode> <scanmode> [input_dir] [--out-dir out_dir] [-r rate] [-c cooldown]
 ```
 
 ### To run postprocessor 
@@ -51,5 +52,5 @@ ip,enterprise,engineIDFormat,engineIDData,snmpEngineBoots,snmpEngineTime,country
 The `input_dir` should be the filtered output folder from the scanner, by default: `./data/{now}/results_encoded/{ip mode}/filtered`. The output will be written in `./data/{now}/results_decoded`. The rest of the arguments are the same as in pipeline.
 
 ```
-python runner.py postprocess <mode> [input_dir] [--out-dir out_dir] [--max-workers N]
+python runner.py postprocess <ipmode> <scanmode> --input_dir [input_dir] [--out-dir out_dir] [--max-workers N]
 ```
