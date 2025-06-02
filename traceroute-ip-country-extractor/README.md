@@ -82,7 +82,7 @@ python extract-details.py <ip-file> <output-file> <country_db> <city_db> <asn_db
 To filter the results by country, city, ASN, or organization:
 
 ```
-python filter.py <ip-with-details-file> [--country <country-name>] [--city <city-name>] [--asn <asn>] [--org <organization>] [--output_file <output-file-name>]
+python filters.py <ip-with-details-file> [--country <country-name>] [--city <city-name>] [--asn <asn>] [--org <organization>] [--output_file <output-file-name>]
 ```
 
 - `<ip-with-details-file>`: File with IP addresses and their corresponding details (CSV format: ip,country,city,asn,organization)

@@ -58,7 +58,7 @@ def split_ips(input_dir: str, out_dir: str = DEFAULT_IP_PATH, per_file: bool = F
         if per_file: 
             ip_data = defaultdict(list, ip_data)
 
-        with file_path.open('r') as infile:
+        with file_path.open('r', encoding='utf-8', errors='replace') as infile:
             for line in infile:
                 ip_str, country, city, asn, asn_name = line.strip().split(',', 4)
                 if not ip_str: 
