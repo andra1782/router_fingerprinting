@@ -11,6 +11,8 @@ def get_country(ip, reader):
         return response.country.name
     except geoip2.errors.AddressNotFoundError:
         return None
+    except ValueError:
+        return None
 
 def get_city(ip, reader):
     try:
@@ -18,12 +20,16 @@ def get_city(ip, reader):
         return response.city.name
     except geoip2.errors.AddressNotFoundError:
         return None
+    except ValueError:
+        return None
     
 def get_asn(ip, reader):
     try:
         response = reader.asn(ip)
         return response.autonomous_system_number, response.autonomous_system_organization
     except geoip2.errors.AddressNotFoundError:
+        return None, None
+    except ValueError:
         return None, None
     
 parser = argparse.ArgumentParser(description="Find the country, city, ASN and organization of each IP within a text file")

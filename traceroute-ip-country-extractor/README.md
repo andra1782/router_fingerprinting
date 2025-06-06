@@ -33,7 +33,7 @@ python pipeline.py --url_file <url-file-name> <country_db> <city_db> <asn_db>
 - `<asn_db>`: Your GeoIP2 ASN database file
 - `<url-file-name>`: Name of file with links to .bz2 archives
 
-**The results can be found in data/{run}/results.txt.** You may inspect the rest of `data/{run}` for the list of all unique IPs, their respective countries, cities, autonomous system numbers and autonomous system organizations. There is a separate file for each archive included. 
+**The results can be found in `data/{run}/results/{filters}_results.txt`.** You may inspect the rest of `data/{run}` for the list of all unique IPs, their respective countries, cities, autonomous system numbers and autonomous system organizations. There is a separate file for each archive included. 
 
 `{run}` is normally determined by the local date/time of when the script was executed. 
 
@@ -82,7 +82,7 @@ python extract-details.py <ip-file> <output-file> <country_db> <city_db> <asn_db
 To filter the results by country, city, ASN, or organization:
 
 ```
-python filter.py <ip-with-details-file> [--country <country-name>] [--city <city-name>] [--asn <asn>] [--org <organization>] [--output_file <output-file-name>]
+python filters.py <ip-with-details-file> [--country <country-name>] [--city <city-name>] [--asn <asn>] [--org <organization>] [--output_file <output-file-name>]
 ```
 
 - `<ip-with-details-file>`: File with IP addresses and their corresponding details (CSV format: ip,country,city,asn,organization)
