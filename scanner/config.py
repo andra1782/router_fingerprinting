@@ -22,7 +22,7 @@ class ScanMode(StrEnum):
 
     @property
     def packet(self) -> str:
-        mapping={ScanMode.SNMPV3: 'snmp3_161.pkt', ScanMode.NTP: 'ntp_123.pkt'}
+        mapping={ScanMode.SNMPV3: 'pkt/snmp3_161.pkt', ScanMode.NTP: 'pkt/ntp_123.pkt'}
         return mapping[self]
 
     @property
