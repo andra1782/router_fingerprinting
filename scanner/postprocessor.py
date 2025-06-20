@@ -188,32 +188,55 @@ def process_ntp_row(idx: int, row: pd.Series) -> dict:
         'asn_name': row['asn_name'],
     }
 
-def append_metadata(df: pd.DataFrame, path: Path) -> None:
-    """Merges the parsed ZMap dataframe to the corresponding metadata"""
+def process_nmap_ntp_row(idx: int, row: pd.Series) -> dict:
+    """
+    Process a row from the Nmap scan CSV, returning all available fields and metadata columns.
+    """
+    result = row.to_dict()
+    for col in ['country', 'city', 'asn', 'asn_name']:
+        if col not in result:
+            result[col] = ''
+    return result
+
+def append_metadata_zmap(df: pd.DataFrame, path: Path) -> None:
+    """Merges the parsed dataframe to the corresponding metadata"""
     metadata_path = Path(MetadataFileMapper().get(str(path.resolve())))
     metadata_df = pd.read_csv(metadata_path)
     return pd.merge(df, metadata_df, left_on='saddr', right_on='ip', how='inner')
 
+    
+def append_metadata_nmap(df: pd.DataFrame, path: Path) -> pd.DataFrame:
+    """Merges the parsed Nmap dataframe to the corresponding metadata."""
+    metadata_path = Path(MetadataFileMapper().get(str(path.resolve())))
+    metadata_df = pd.read_csv(metadata_path)
+    return pd.merge(df, metadata_df, left_on='ip', right_on='ip', how='inner')
+
 
 def parse_results(zmap_csv: str, out_csv: str, scan_mode: ScanMode, max_workers: int = 5, with_metadata: bool = True) -> pd.DataFrame:
     """
-    Reads a raw ZMap CSV, decodes each row, and writes the final parsed CSV.
+    Reads a raw ZMap or Nmap CSV, decodes each row, and writes the final parsed CSV.
 
     Args:
-        zmap_csv: Path to raw ZMap CSV output.
+        zmap_csv: Path to raw ZMap or Nmap CSV output.
         out_csv: Path for the final parsed CSV.
         max_workers: Max number of thread workers.
     """
     scan_mode_func = {
         ScanMode.SNMPV3: process_snmp_row,
-        ScanMode.NTP: process_ntp_row
+        ScanMode.NTP_ZMAP: process_ntp_row,
+        ScanMode.NTP_NMAP: process_nmap_ntp_row
+    }
+    metadata_func = {
+        ScanMode.SNMPV3: append_metadata_zmap,
+        ScanMode.NTP_ZMAP: append_metadata_zmap,
+        ScanMode.NTP_NMAP: append_metadata_nmap
     }
 
     zpath = Path(zmap_csv)
     if not zpath.is_file():
-        raise FileNotFoundError(f'ZMap CSV not found: {zmap_csv}')
+        raise FileNotFoundError(f'ZMap/Nmap CSV not found: {zmap_csv}')
 
-    df = append_metadata(pd.read_csv(zpath), zpath) if with_metadata else pd.read_csv(zpath)
+    df = metadata_func[scan_mode](pd.read_csv(zpath), zpath) if with_metadata else pd.read_csv(zpath)
 
     records = []
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -272,5 +295,3 @@ def postprocess(
         except Exception as e:
             print(f'Error processing {csv_path.name}: {e}', file=sys.stderr)
             continue
-
-    # TODO: add for ipv6

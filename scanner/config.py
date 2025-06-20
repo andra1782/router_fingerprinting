@@ -18,16 +18,17 @@ class IPMode(StrEnum):
     
 class ScanMode(StrEnum):
     SNMPV3 = auto()
-    NTP = auto()
+    NTP_ZMAP = auto()
+    NTP_NMAP = auto()  # Added for zgrab-based NTP OS detection
 
     @property
     def packet(self) -> str:
-        mapping={ScanMode.SNMPV3: 'pkt/snmp3_161.pkt', ScanMode.NTP: 'pkt/ntp_123.pkt'}
+        mapping={ScanMode.SNMPV3: 'pkt/snmp3_161.pkt', ScanMode.NTP_ZMAP: 'pkt/ntp_zmap.pkt', ScanMode.NTP_NMAP: 'pkt/ntp_nmap.pkt'}
         return mapping[self]
 
     @property
     def port(self) -> str:
-        mapping={ScanMode.SNMPV3: '161', ScanMode.NTP: '123'}
+        mapping={ScanMode.SNMPV3: '161', ScanMode.NTP_ZMAP: '123', ScanMode.NTP_NMAP: '123'}
         return mapping[self]
 
 #####################################################################################################
