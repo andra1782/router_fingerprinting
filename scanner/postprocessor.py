@@ -199,7 +199,7 @@ def process_nmap_ntp_row(idx: int, row: pd.Series) -> dict:
     return result
 
 def append_metadata_zmap(df: pd.DataFrame, path: Path) -> None:
-    """Merges the parsed dataframe to the corresponding metadata"""
+    """Merges the parsed ZMap dataframe to the corresponding metadata"""
     metadata_path = Path(MetadataFileMapper().get(str(path.resolve())))
     metadata_df = pd.read_csv(metadata_path)
     return pd.merge(df, metadata_df, left_on='saddr', right_on='ip', how='inner')

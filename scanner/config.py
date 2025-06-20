@@ -19,7 +19,7 @@ class IPMode(StrEnum):
 class ScanMode(StrEnum):
     SNMPV3 = auto()
     NTP_ZMAP = auto()
-    NTP_NMAP = auto()  # Added for zgrab-based NTP OS detection
+    NTP_NMAP = auto()  
 
     @property
     def packet(self) -> str:
