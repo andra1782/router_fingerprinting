@@ -219,7 +219,7 @@ if __name__ == "__main__":
         help="Multithreading; optionally specify number of workers (default: 4)"
     )
     parser.add_argument("--fast", action="store_true", help="Merge IPs after trace-route processing. NOTE: EXPERIMENTAL")
-    parser.add_argument("--verbose", action="store_true", help="Outputs extra information for the filtered IPs, including Country, City and ASN.")
+    parser.add_argument("--verbose", default=True, action="store_true", help="Outputs extra information for the filtered IPs, including Country, City and ASN.")
 
     args = parser.parse_args()
 

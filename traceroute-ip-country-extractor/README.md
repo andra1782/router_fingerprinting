@@ -45,6 +45,7 @@ python pipeline.py --url_file <url-file-name> <country_db> <city_db> <asn_db>
 - `--asn "<asn>"`: Filter by a specific ASN.
 - `--org "<organization>"`: Filter by a specific organization name. Note: The organization name *must* be enclosed in quotes ("").
 - `--skip-extraction`: Skip download, extraction and IP extraction steps (use existing IP files). Useful when re-running with different filters or continuing from a previous run.
+- `--fast`: Merge IPs after trace-route processing. Should considerably speed up the process. **WARNING**: Partial results (so the failure of downloading a traceroute file for example) might result in failure
 
 You can use any combination of these filter options. For example:
 ```bash
@@ -91,6 +92,7 @@ python filters.py <ip-with-details-file> [--country <country-name>] [--city <cit
 - `--asn <asn>`: (Optional) ASN to filter by
 - `--org <organization>`: (Optional) Organization name to filter by
 - `--output_file <output-file-name>`: (Optional) File to save the filtered IPs. If not specified, a name will be generated based on the applied filters.
+- `--verbose`: Outputs extra information for the filtered IPs, including Country, City and ASN.
 
 The output file will be named based on the filters applied. For example:
 - `{base_name}_filtered_country_netherlands.txt` for country filter
