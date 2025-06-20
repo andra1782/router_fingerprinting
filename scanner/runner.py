@@ -4,6 +4,7 @@ from preprocessor import *
 from postprocessor import *
 from scan_ips import *
 from config import *
+import pandas as pd
 
 
 if __name__ == '__main__':
@@ -26,7 +27,7 @@ if __name__ == '__main__':
     # Scan: run ZMap on whitelists
     p_scan = subparsers.add_parser('scan-ips', help='Run ZMap scans on IP whitelists')
     p_scan.add_argument('ipmode', help='ipv4 or ipv6')
-    p_scan.add_argument('scanmode', help='snmpv3 or ntp')
+    p_scan.add_argument('scanmode', help='snmpv3, ntp_zmap, or ntp_nmap')
     p_scan.add_argument(
         '--input_dir', default=DEFAULT_IP_PATH, help='Directory with IPv4 and IPv6 whitelist files'
     )
