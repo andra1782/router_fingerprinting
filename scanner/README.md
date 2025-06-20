@@ -2,18 +2,16 @@
 
 Works only with ipv4 (for now).
 
-## Prerequisites
-- zmap
-- pandas in your env
-- need to have extracted the ips, refer to [traceroute extractor README](../traceroute-ip-country-extractor//README.md)
-
-## System requirements for the scanner
+## Pre-requisites
+- Zmap:
 ```bash
 sudo apt install zmap
 sudo apt install nmap
 sudo apt install wireshark-common
 sudo apt install wireshark-common tshark
 ```
+- pandas in your env
+- need to have extracted the ips, refer to [traceroute extractor README](../traceroute-ip-country-extractor//README.md)
 
 
 ## Run entire pipeline
