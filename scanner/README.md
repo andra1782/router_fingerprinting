@@ -7,6 +7,15 @@ Works only with ipv4 (for now).
 - pandas in your env
 - need to have extracted the ips, refer to [traceroute extractor README](../traceroute-ip-country-extractor//README.md)
 
+## System requirements for the scanner
+```bash
+sudo apt install zmap
+sudo apt install nmap
+sudo apt install wireshark-common
+sudo apt install wireshark-common tshark
+```
+
+
 ## Run entire pipeline
 This will **preprocess** ➔ **scan** ➔ **postprocess** in one go. Your input folder will be the destination where the ips of a specific contry were extracted. If you ran the extractor code with default output args, this path should be: `../traceroute-ip-country-extractor/data/{extracted day}/results/`.
 ```
@@ -85,3 +94,5 @@ python statistics_outage.py <input_file> [--output OUTPUT] [--collection-time TI
 - `--collection-time`: (Optional) Collection time in format `YYYY-MM-DD HH:MM:SS`. Default: `2025-06-16 15:00:00`.
 - `--outage-start`: (Optional) Outage start time. Default: `2025-04-28 12:00:00`.
 - `--outage-end`: (Optional) Outage end time. Default: `2025-04-29 23:59:59`.
+
+
