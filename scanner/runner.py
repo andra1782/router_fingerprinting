@@ -4,6 +4,7 @@ from preprocessor import *
 from postprocessor import *
 from scan_ips import *
 from config import *
+import pandas as pd
 
 
 if __name__ == '__main__':

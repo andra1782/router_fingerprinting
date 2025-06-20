@@ -119,7 +119,6 @@ def run_scan(
                         ports.append(line.strip())
                 if ip:
                     results.append({'ip': ip, 'os': os, 'ports': ';'.join(ports), **extra})
-                import pandas as pd
                 df = pd.DataFrame(results)
                 df.to_csv(unfiltered_output_csv, index=False)
                 # For NTP NMAP, filtered = unfiltered (all IPs scanned)
@@ -134,7 +133,7 @@ def run_scan(
             except Exception as e:
                 print(f"Warning: could not parse Nmap output {nmap_output.name}: {e}", file=sys.stderr)
         
-        else: 
+        else:
             # ZMap scan for SNMPv3 or NTP
             cmd = [
                 'sudo',
