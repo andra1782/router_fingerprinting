@@ -54,3 +54,34 @@ The `input_dir` should be the filtered output folder from the scanner, by defaul
 ```
 python runner.py postprocess <ipmode> <scanmode> --input_dir [input_dir] [--out-dir out_dir] [--max-workers N]
 ```
+
+## Plotting scripts
+
+### `statistics_per_country.py`
+
+This script analyzes router scan results and traceroute data to generate statistics and plots per country. It loads a CSV file with scan results and a directory of TXT files with traceroute results, then produces plots (e.g., max IPs per engineId) in the specified output directory.
+
+**Usage:**
+```
+python statistics_per_country.py <csv_file> <txt_dir> [--output-dir OUTPUT_DIR]
+```
+- `<csv_file>`: Path to the input CSV file (scanner results).
+- `<txt_dir>`: Path to the directory containing TXT files (traceroute results).
+- `--output-dir` or `-o`: (Optional) Output directory for the plots. Defaults to `plots`.
+
+---
+
+### `statistics_outage.py`
+
+**Description:**  
+This script analyzes router reboot data during a specified outage period. It reads a CSV file with scan results, calculates reboot times, and generates two plots: one for IPs and one for unique routers that rebooted during the outage. The specific outage which we analyzed in this script is the one in Spain on the 28th of April 2025 at 12:33.
+
+**Usage:**
+```
+python statistics_outage.py <input_file> [--output OUTPUT] [--collection-time TIME] [--outage-start TIME] [--outage-end TIME]
+```
+- `<input_file>`: Path to the input CSV file (scanner results).
+- `--output` or `-o`: (Optional) Output file path prefix for the plots. Default: `plots/outage_reboots.png` (will create `outage_reboots_ips.png` and `outage_reboots_routers.png`).
+- `--collection-time`: (Optional) Collection time in format `YYYY-MM-DD HH:MM:SS`. Default: `2025-06-16 15:00:00`.
+- `--outage-start`: (Optional) Outage start time. Default: `2025-04-28 12:00:00`.
+- `--outage-end`: (Optional) Outage end time. Default: `2025-04-29 23:59:59`.
